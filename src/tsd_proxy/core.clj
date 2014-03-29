@@ -66,8 +66,21 @@
                     false)))
               pattern-list)))
 
+  (defn substring? [sub st]
+    (not= (.indexOf st sub) -1))
+
+  (defn ip-filter [ch client-info]
+    (let [ip-list (:blacklist-ips (get-config config-file))]
+      (if-not (empty? ip-list)
+        (doseq [ip ip-list]
+          (if (substring? ip (:address client-info))
+            (do
+              (close ch)
+              (log/warn "Client" (:address client-info) "matches among those in blacklist-ips.")))))))
+
   (defn tsd-incoming-handler [ch client-info]
-    (log/info "New connection from:" client-info)
+    (log/info "New connection from:" (:address client-info))
+    (ip-filter ch client-info)                                               
     (if (empty? pattern-list)
       (join ch broadcast-ch)
       ; we have a pattern list - filter* pipes the channels messages
